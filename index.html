@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <title>SM 速報 BUY ダッシュボード</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="title">
+      <span class="emoji">🔥</span>
+      <h1>SM 速報 BUY ダッシュボード</h1>
+    </div>
+    <div class="meta">
+      <span id="updated">Loading…</span>
+      <span class="sep">·</span>
+      <span id="counts"></span>
+      <span class="sep">·</span>
+      <button id="reload-btn" class="reload-btn" title="今すぐ再読込">🔄</button>
+      <label class="auto-toggle" title="60 秒ごとに自動再読込">
+        <input id="auto-refresh" type="checkbox" />
+        <span>Auto</span>
+      </label>
+    </div>
+  </header>
+
+  <section class="controls">
+    <div class="control-group" id="window-tabs" role="tablist">
+      <button data-window="1h" class="tab active">1h</button>
+      <button data-window="6h" class="tab">6h</button>
+      <button data-window="24h" class="tab">24h</button>
+      <button data-window="7d" class="tab">7d</button>
+      <button data-window="fav" class="tab special" title="お気に入り (この端末に保存)">⭐ <span id="fav-count">0</span></button>
+      <button data-window="watch" class="tab special" title="任意 CA 監視 (この端末に保存)">📌 <span id="watch-count">0</span></button>
+    </div>
+    <div class="control-group">
+      <label for="sort">Sort</label>
+      <select id="sort">
+        <option value="distinct_buyers">買い手数</option>
+        <option value="last_seen_ts">直近</option>
+        <option value="market_cap">MCAP</option>
+        <option value="sum_buy_sol">SOL 合計</option>
+        <option value="sum_buy_stable">USD 合計</option>
+        <option value="buy_trades">取引数</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="min-buyers">Min buyers</label>
+      <input id="min-buyers" type="number" min="1" value="1" />
+    </div>
+    <div class="control-group grow">
+      <input id="search" type="search" placeholder="symbol / name / mint で検索…" />
+    </div>
+  </section>
+
+  <main class="layout">
+    <aside class="list-pane">
+      <div id="watch-add" class="watch-add" hidden>
+        <input id="watch-input" type="text" placeholder="CA (mint) を貼り付けて追加…" />
+        <button id="watch-add-btn" class="action-btn">+ 追加</button>
+      </div>
+      <div id="list-toolbar" class="list-toolbar" hidden>
+        <span id="list-toolbar-count"></span>
+        <div class="toolbar-actions">
+          <button id="export-btn" class="action-btn" title="お気に入り+監視リストを JSON ファイルに保存">⬇ 書き出し</button>
+          <button id="import-btn" class="action-btn" title="JSON ファイルから復元（現在のリストを置き換え）">⬆ 読み込み</button>
+          <input id="import-file" type="file" accept="application/json,.json" hidden />
+          <button id="clear-all-btn" class="action-btn danger">🗑 全削除</button>
+        </div>
+      </div>
+      <ul id="token-list" class="token-list"></ul>
+      <p id="empty-msg" class="empty-msg" hidden>該当銘柄がありません</p>
+    </aside>
+
+    <div id="resizer" class="resizer" role="separator" aria-orientation="vertical" tabindex="0"
+         title="ドラッグで幅変更"></div>
+
+    <section class="chart-pane">
+      <div id="chart-empty" class="chart-empty">
+        左の銘柄を選択するとチャートが表示されます
+      </div>
+      <div id="chart-detail" class="chart-detail" hidden>
+        <div class="chart-header">
+          <button id="back-btn" class="back-btn" aria-label="一覧に戻る">←</button>
+          <div class="chart-title">
+            <img id="detail-image" alt="" />
+            <div>
+              <div class="line-1">
+                <span id="detail-symbol" class="symbol"></span>
+                <span id="detail-name" class="name"></span>
+              </div>
+              <div class="line-2">
+                <span id="detail-stats"></span>
+              </div>
+            </div>
+          </div>
+          <div class="chart-source">
+            <button data-source="dexscreener" class="src-btn active">DexScreener</button>
+            <button data-source="birdeye" class="src-btn">Birdeye</button>
+            <a id="detail-open-link" href="#" target="_blank" rel="noopener" class="open-ext">↗ 新規タブ</a>
+          </div>
+        </div>
+        <div class="action-bar">
+          <button id="copy-ca-btn" class="action-btn" title="CA (mint) をクリップボードにコピー">📋 CA</button>
+          <button id="snapshot-btn" class="action-btn" title="銘柄情報を Markdown でコピー">📸 Snapshot</button>
+          <a id="grok-btn" class="action-btn" href="#" target="_blank" rel="noopener"
+             title="Grok でナラティブを調べる">🤖 Grok</a>
+          <a id="deepnets-btn" class="action-btn" href="#" target="_blank" rel="noopener"
+             title="DeepNets でトークン分析">🧠 DeepNets</a>
+        </div>
+        <div class="iframe-wrap">
+          <iframe id="chart-frame" title="chart" loading="lazy"
+                  referrerpolicy="no-referrer"
+                  allow="clipboard-write"></iframe>
+        </div>
+        <div class="buyers">
+          <div class="buyers-tabs" role="tablist">
+            <button data-view="buyers" class="buyers-tab active">
+              Buyers (<span id="buyers-count">0</span>)
+            </button>
+            <button data-view="events" class="buyers-tab">
+              履歴 (<span id="events-count">0</span>)
+            </button>
+            <button data-view="token-info" class="buyers-tab">
+              Token Info
+            </button>
+          </div>
+          <div class="buyers-view" data-view="buyers">
+            <div class="buyers-header">
+              <span>ウォレット</span>
+              <span>ラベル</span>
+              <span>スコア</span>
+              <span class="num">取引数</span>
+              <span class="num">合計</span>
+              <span class="num">最終</span>
+            </div>
+            <ul id="buyers-list"></ul>
+          </div>
+          <div class="buyers-view" data-view="events" hidden>
+            <div class="events-header">
+              <span>時刻</span>
+              <span>方向</span>
+              <span>ウォレット</span>
+              <span>ラベル</span>
+              <span>スコア</span>
+              <span class="num">金額</span>
+            </div>
+            <ul id="events-list"></ul>
+          </div>
+          <div class="buyers-view token-info-view" data-view="token-info" hidden>
+            <div id="token-info-grid" class="token-info-grid"></div>
+            <div id="token-info-score" class="token-info-score"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
