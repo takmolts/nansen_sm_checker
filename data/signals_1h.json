@@ -1,0 +1,10 @@
+{
+  "window": "1h",
+  "window_hours": 1,
+  "since_ts": 1793798169,
+  "now_ts": 1793801769,
+  "generated_at": "2026-11-04T14:16:10Z",
+  "total_events_in_window": 0,
+  "min_distinct_buyers": 1,
+  "tokens": []
+}
